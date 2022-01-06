@@ -44,21 +44,55 @@ class Company {
     return company;
   }
 
-  /** Find all companies.
+  /** 
+   * Find all companies (optional filter on filters)
    *
+   * @param {Object} filters (optional query filter)
+   * 
+   * filters (optional):
+   * - minEmployees
+   * - maxEmployees
+   * - name (case-insensitive, partial match)
+   * 
    * Returns [{ handle, name, description, numEmployees, logoUrl }, ...]
    * */
 
-  static async findAll() {
-    const companiesRes = await db.query(
-          `SELECT handle,
-                  name,
-                  description,
-                  num_employees AS "numEmployees",
-                  logo_url AS "logoUrl"
-           FROM companies
-           ORDER BY name`);
-    return companiesRes.rows;
+  static async findAll(filters = {}) {
+    let queryStr = `SELECT handle, name, description, num_employees AS 
+      "numEmployees", logo_url AS "logoUrl" FROM companies`;
+    let whereExpArr = [];
+    let queryValArr = [];
+    const { minEmployees, maxEmployees, name } = filters;
+
+    if (minEmployees > maxEmployees) {
+      throw new BadRequestError("Min employees should be lower than max employees");
+    }
+    if (minEmployees < 0 || maxEmployees < 0) {
+      throw new BadRequestError("Min and max employees should be greater than or equal to 0");
+    }
+
+    // prepare WHERE clause with respective values array by checking each
+    // possible search criteria.
+    if (minEmployees !== undefined) { //0 would evaluate to false
+      queryValArr.push(minEmployees);
+      whereExpArr.push(`num_employees >= $${queryValArr.length}`);
+    }
+    if (maxEmployees !== undefined) { //0 would evaluate to false
+      queryValArr.push(maxEmployees);
+      whereExpArr.push(`num_employees <= $${queryValArr.length}`);
+    }
+    if (name) {
+      queryValArr.push(`%${name}%`);
+      whereExpArr.push(`name ILIKE $${queryValArr.length}`);
+    }
+    if (whereExpArr.length > 0) {
+      queryStr += " WHERE " + whereExpArr.join(" AND ");
+    }
+
+    // Ready to perform the query.
+    queryStr += " ORDER BY name";
+    const companies = await db.query(queryStr, queryValArr);
+    return companies.rows;
   }
 
   /** Given a company handle, return data about company.
