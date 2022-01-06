@@ -85,6 +85,99 @@ describe("findAll", function () {
       },
     ]);
   });
+
+  test("bad request if min emp > max emp", async function () {
+    try {
+      await Company.findAll({ minEmployees: 3, maxEmployees: 1 });
+      fail();
+    } catch (err) {
+      expect(err instanceof BadRequestError).toBeTruthy();
+    }
+  });
+
+  test("bad request if min emp < 0", async function () {
+    try {
+      await Company.findAll({ minEmployees: -3 });
+      fail();
+    } catch (err) {
+      expect(err instanceof BadRequestError).toBeTruthy();
+    }
+  });
+
+  test("bad request if max emp < 0", async function () {
+    try {
+      await Company.findAll({ maxEmployees: -1 });
+      fail();
+    } catch (err) {
+      expect(err instanceof BadRequestError).toBeTruthy();
+    }
+  });
+
+  test("empty array on nothing found", async function () {
+    let companies = await Company.findAll({ minEmployees: 5 });
+    expect(companies).toEqual([]);
+  });
+
+  test("name filter", async function () {
+    const companies = await Company.findAll({ name: "c1" });
+    expect(companies).toEqual([
+      {
+        handle: "c1",
+        name: "C1",
+        description: "Desc1",
+        numEmployees: 1,
+        logoUrl: "http://c1.img",
+      },
+    ]);
+  });
+
+  test("min employees filter", async function () {
+    const companies = await Company.findAll({ minEmployees: 3 });
+    expect(companies).toEqual([
+      {
+        handle: "c3",
+        name: "C3",
+        description: "Desc3",
+        numEmployees: 3,
+        logoUrl: "http://c3.img",
+      },
+    ]);
+  });
+
+  test("max employees filter", async function () {
+    const companies = await Company.findAll({ maxEmployees: 1 });
+    expect(companies).toEqual([
+      {
+        handle: "c1",
+        name: "C1",
+        description: "Desc1",
+        numEmployees: 1,
+        logoUrl: "http://c1.img",
+      },
+    ]);
+  });
+
+  test("min and max employees filter", async function () {
+    let companies = await Company.findAll(
+        { minEmployees: 2, maxEmployees: 3 });
+    expect(companies).toEqual([
+      {
+        handle: "c2",
+        name: "C2",
+        description: "Desc2",
+        numEmployees: 2,
+        logoUrl: "http://c2.img",
+      },
+      {
+        handle: "c3",
+        name: "C3",
+        description: "Desc3",
+        numEmployees: 3,
+        logoUrl: "http://c3.img",
+      },
+    ]);
+  });
+
 });
 
 /************************************** get */
